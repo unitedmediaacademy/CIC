@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CIC Workshop — Student Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F0F14;
+    --card: #1A1A24;
+    --border: #2A2A38;
+    --accent1: #7C6CF2;
+    --accent2: #00D4AA;
+    --text: #F0F0F8;
+    --muted: #888899;
+    --input-bg: #22222E;
+    --ml4: #7C6CF2;
+    --ml4-bg: #1E1A3A;
+    --ml1: #00D4AA;
+    --ml1-bg: #0D2B27;
+    --error: #FF6B6B;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px 60px;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: -20%;
+    width: 80vw;
+    height: 80vw;
+    background: radial-gradient(circle, rgba(124,108,242,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -30%;
+    right: -20%;
+    width: 70vw;
+    height: 70vw;
+    background: radial-gradient(circle, rgba(0,212,170,0.09) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 52px 0 36px;
+  }
+  .header .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 8vw, 38px);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, var(--accent1) 50%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+  .header p {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  /* Search box */
+  .search-wrap {
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  input#sid {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 18px 18px 50px;
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  input#sid::placeholder {
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: 0;
+    font-size: 15px;
+  }
+  input#sid:focus {
+    border-color: var(--accent1);
+    box-shadow: 0 0 0 3px rgba(124,108,242,0.15);
+  }
+  input#sid::-webkit-outer-spin-button,
+  input#sid::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  /* Search button */
+  button#searchBtn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    border: none;
+    border-radius: 14px;
+    padding: 17px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-bottom: 28px;
+  }
+  button#searchBtn:active { opacity: 0.85; transform: scale(0.98); }
+
+  /* Result card */
+  #result { animation: fadeUp 0.35s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .student-id {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .student-name {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(18px, 5vw, 22px);
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text);
+  }
+
+  /* Workshop badge */
+  .workshop-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    margin: 20px 24px 0;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .workshop-badge.ml4 {
+    background: var(--ml4-bg);
+    color: var(--ml4);
+    border: 1px solid rgba(124,108,242,0.3);
+  }
+  .workshop-badge.ml1 {
+    background: var(--ml1-bg);
+    color: var(--ml1);
+    border: 1px solid rgba(0,212,170,0.3);
+  }
+  .ws-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .ml4 .ws-dot { background: var(--ml4); }
+  .ml1 .ws-dot { background: var(--ml1); }
+
+  /* Info grid */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 20px 24px 24px;
+  }
+  .info-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .info-item.full { grid-column: 1 / -1; }
+  .info-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .info-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .info-value.role-account { color: #FFB347; }
+  .info-value.role-strategy { color: #74B9FF; }
+  .info-value.role-pr { color: #FD79A8; }
+  .info-value.role-content { color: #55EFC4; }
+  .info-emoji {
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+
+  /* Error state */
+  .error-card {
+    background: rgba(255,107,107,0.08);
+    border: 1.5px solid rgba(255,107,107,0.25);
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .error-icon { font-size: 36px; margin-bottom: 12px; }
+  .error-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--error);
+    margin-bottom: 8px;
+  }
+  .error-msg { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+  /* Counter */
+  .footer-note {
+    text-align: center;
+    margin-top: 32px;
+    color: var(--muted);
+    font-size: 12px;
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">CIC × United Media</div>
+    <h1>Workshop<br>Lookup</h1>
+    <p>Enter your Student ID to find your group</p>
+  </div>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="number" id="sid" placeholder="e.g. 202200351" inputmode="numeric" autocomplete="off" />
+  </div>
+  <button id="searchBtn" onclick="lookup()">Find My Group →</button>
+
+  <div id="result"></div>
+
+  <p class="footer-note">232 students registered · 14 groups · 6 rooms</p>
+</div>
+
+<script>
+const DATA = {"202201420": {"name": "Meray Maged Boshra Zaki", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Account", "major": "PR"}, "202201029": {"name": "Naira Ahmed fouad Ali", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Account", "major": "PR"}, "202201708": {"name": "Nadine Elsayed Mosalam Selmy", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Strategy", "major": "PR"}, "202201716": {"name": "Ibrahim Muhammed Nour Eldine yassin", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "PR", "major": "PR"}, "202200954": {"name": "Shahd Ahmed Salah Mahmoud  Elhadary", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Account", "major": "PR"}, "202201318": {"name": "Rawan Osama Mustafa Ali Ouda", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Strategy", "major": "PR"}, "202201295": {"name": "Tasneem Mohamed Abdelfatah Marzouk", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "PR", "major": "PR"}, "202201423": {"name": "Youssef Yassen Zakria Aboelnaga", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Account", "major": "PR"}, "202201380": {"name": "Ayat Ahmed Amin Mohamed  Abou El Seoud", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Strategy", "major": "PR"}, "202201555": {"name": "Sohaila Saleem eaid  Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "PR", "major": "PR"}, "202200075": {"name": "Nour Karim Ramadan Ali", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Account", "major": "PR"}, "202201202": {"name": "Youana Magdy Zakaria hens Ghobrial", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Strategy", "major": "PR"}, "202201665": {"name": "Bassant Ahmed Hassan Mohamed Mousa", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Content", "major": "RTV"}, "202201205": {"name": "Merna Wael Elsayed Mohamed  Abdalsamia", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Content", "major": "RTV"}, "202200480": {"name": "Rewis Osama Fawzy Mansy", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Content", "major": "RTV"}, "202200168": {"name": "Mazin Osama Mohamed Metwaly", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Content", "major": "RTV"}, "202200049": {"name": "David Sameh Saleh Beshay", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Content", "major": "RTV"}, "202200203": {"name": "Irinie George Mounir Agaiby Mechaiel", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Content", "major": "RTV"}, "202200274": {"name": "Fatma ahmed mohamed mohamed  bayomi", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Content", "major": "RTV"}, "202200069": {"name": "Habiba Ahmed Saad Mohamed Ibrahim", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 1", "role": "Content", "major": "Jour"}, "202100670": {"name": "Romisaa Ahmed Hassan", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Account", "major": "PR"}, "202001377": {"name": "Hekmat Abdelkreem Ibrahim Y", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Strategy", "major": "PR"}, "202200984": {"name": "Nour Mohamed Omar Soliman", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "PR", "major": "PR"}, "202201234": {"name": "Karim Hussam El-Din Hassan Mohamed Hassan Emam", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Account", "major": "PR"}, "202201222": {"name": "Hana mohamed mahmoud sadek mohamed berry", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Strategy", "major": "PR"}, "202201567": {"name": "Pola Samier Zarief  Samaan", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "PR", "major": "PR"}, "202200455": {"name": "Logain Mohamed Tarek Soliman  El Sayed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Account", "major": "PR"}, "202201356": {"name": "Ahmed Ibrahim AbdElhafez Mahamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Strategy", "major": "PR"}, "202201214": {"name": "Farah Abd Alrahman Ahmed Salem", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "PR", "major": "PR"}, "202201149": {"name": "Lama Radwan Amir Radwan Elogail", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Account", "major": "PR"}, "202201753": {"name": "Hoda Abdallah Soliman Abdallah Ahmed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Strategy", "major": "PR"}, "202300430": {"name": "Salma Ashraf Farouk Abdelmakssoud", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "PR", "major": "PR"}, "202201678": {"name": "Saif Eldin Khaled Yehia Elsayed Azab", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Content", "major": "RTV"}, "202201105": {"name": "Farida Ehab Hassan Mohamed Ali", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Content", "major": "RTV"}, "202201073": {"name": "Toqa Hanafy Hamed  Elhanafy", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Content", "major": "RTV"}, "202200170": {"name": "Sara Mohammed Hesham Ahmed Amin Hathout", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Content", "major": "RTV"}, "202200390": {"name": "Mohamed Saied Abdelsamiea Elsayed Ibrahim", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Content", "major": "RTV"}, "202200108": {"name": "Maya Mahmoud Abdelrahim Abdelnaem Hussien", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Content", "major": "RTV"}, "202201854": {"name": "Ahmed Amr Mohamed Shams Eldin Mahmoud Effat", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Content", "major": "RTV"}, "202200104": {"name": "Zainab Ahmed Elsayed Ali Khalifa", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 2", "role": "Strategy", "major": "Jour"}, "202201078": {"name": "Ahlam Mohsen Saad Abd Hamid Hassan", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Account", "major": "PR"}, "202200424": {"name": "Rozan Hany Mohamed Zaki", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "PR", "major": "PR"}, "202200908": {"name": "Weam Hesham Fathy Farag", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Account", "major": "PR"}, "202201261": {"name": "Zeinab Anwar Mostafa Eissa", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Strategy", "major": "PR"}, "202201190": {"name": "Haneen Ahmed Mahmoud Farag Gebril", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "PR", "major": "PR"}, "202201159": {"name": "Menna Allah Hashem Abdelhady Abdelmoty", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Account", "major": "PR"}, "202201328": {"name": "Shahd Ahmed Awaad Mostafa", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Strategy", "major": "PR"}, "202201057": {"name": "Nadine Medhat Sobhy Elmaadawy Elsayed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "PR", "major": "PR"}, "202201187": {"name": "Natalie Emad Sedky Erian Farag", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Account", "major": "PR"}, "202200439": {"name": "Ahmed Wael Abdelhamid Abdelbaky Helal", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Strategy", "major": "PR"}, "202200017": {"name": "Mohamed Ahmed Saeed Alsayed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "PR", "major": "PR"}, "202201725": {"name": "Youssef Mohamed Arafa Mohamed Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Account", "major": "PR"}, "202300184": {"name": "Jana Hesham Mohamed Abdelhamed Nour Eldeen", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Content", "major": "RTV"}, "202201802": {"name": "Basma Adel Ahmed  Darwish", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Content", "major": "RTV"}, "202201148": {"name": "Hassan Hassan Mohamed Abd ElMenam Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Content", "major": "RTV"}, "202200865": {"name": "Abdallah Ahmed Hassan  Soliman", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Content", "major": "RTV"}, "202200988": {"name": "Shahd Essam Mohamed Abd El Razek Khalefa", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Content", "major": "RTV"}, "202201494": {"name": "Ahmed Mohamed Ahmed Fathi Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Content", "major": "RTV"}, "202201332": {"name": "Rawan tamer maraay fahem soliman", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 1", "group": "Group 3", "role": "Content", "major": "RTV"}, "202201640": {"name": "Germen Nabil Sam Labib Abdo Elsayed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Account", "major": "PR"}, "202200443": {"name": "Rahma Gaafar Abu El-Ela Taha", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Account", "major": "PR"}, "202201324": {"name": "Mahmoud Mahdy Emam Mohamed Ahmed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Strategy", "major": "PR"}, "202200801": {"name": "Yasmin Emad Mostafa Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "PR", "major": "PR"}, "202201289": {"name": "Hala Awny Abbas Ibrahim Halawa", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Account", "major": "PR"}, "202200446": {"name": "Raneem Ashraf Mohamed Mohamed Selim Elsokary", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Strategy", "major": "PR"}, "202201638": {"name": "Omar Mohamed Ali Mohamed Ali", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "PR", "major": "PR"}, "202300795": {"name": "Alaa Ahmed Ibrahim Abdrabbou Badran", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Account", "major": "PR"}, "202201147": {"name": "Mariam Mohamed Abd Elzaher Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Strategy", "major": "PR"}, "202200342": {"name": "Rudina Khaled Abouzeid  Ahmed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "PR", "major": "PR"}, "202201474": {"name": "Malak Ali Mohamed El sayed Ahmed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Account", "major": "PR"}, "202201721": {"name": "Abdelrahman Mahmoud Abdelghafar Fahem Mansour", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Content", "major": "RTV"}, "202201111": {"name": "Adam Ahmed Mohamed Diab Elsafty", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Content", "major": "RTV"}, "202201351": {"name": "Malak Ekramy ahmed Kamel", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Content", "major": "RTV"}, "202200535": {"name": "Ranim Ekramy Mahmoud Said Ezat", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Content", "major": "RTV"}, "202200330": {"name": "liana Akram Ebrahem Tawfeek", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Content", "major": "RTV"}, "202201346": {"name": "Julie Sherif Samir  Naseif", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Content", "major": "RTV"}, "202200290": {"name": "Youssef Diaa Eldin Mohamed Helaly", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Content", "major": "RTV"}, "202201343": {"name": "Hatem Ahmed Mahmoud Ahmed  Hangal", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 4", "role": "Content", "major": "RTV"}, "202200094": {"name": "Nourine Ibrahim Abdelsadek Afefe", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Account", "major": "PR"}, "202201481": {"name": "Marize Samer Ramzy Amin", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Strategy", "major": "PR"}, "202201504": {"name": "Mai Mohamed Ahmed  Ashour", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "PR", "major": "PR"}, "202200450": {"name": "Seif eldin Ahmed Mohammed Mohammed  Abbas", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Account", "major": "PR"}, "202201730": {"name": "Nada Mamdouh Abbas  Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Strategy", "major": "PR"}, "202300789": {"name": "Shahd Mohamed Ibrahim Mohamed Lashin", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "PR", "major": "PR"}, "202100652": {"name": "Ganna Ehab Fouad Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Account", "major": "PR"}, "202201619": {"name": "Cybelle Wael gamil Gaber", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Strategy", "major": "PR"}, "202200217": {"name": "Merna Waleed Mohamed Salman", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "PR", "major": "PR"}, "202200059": {"name": "Rama Hesham Hassan Hamed Hassan", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Account", "major": "PR"}, "202201387": {"name": "Yasmina Abdelnasser Bassiouny Ismail Mesaed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Strategy", "major": "PR"}, "202201173": {"name": "Laila Mahmoud Hassan Ebrahim", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Content", "major": "RTV"}, "202200703": {"name": "Hamsa Ehab Saied Mohamed Ahmed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Content", "major": "RTV"}, "202200232": {"name": "Hana youssef houssein ibrahim", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Content", "major": "RTV"}, "202201472": {"name": "Farah Ahmed Alsayed Ahmed  Khater", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Content", "major": "RTV"}, "202201081": {"name": "Nourhan Hassan Mohamed Ali Omar", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Content", "major": "RTV"}, "202200566": {"name": "Sohaila Helmy Mohamed Ali Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Content", "major": "RTV"}, "202201608": {"name": "Rahma Said AbdElHakim ElWakil", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Content", "major": "RTV"}, "202201206": {"name": "Michael sameh isaac attalla ayob", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 2", "group": "Group 5", "role": "Content", "major": "RTV"}, "202200318": {"name": "Habiba Tarek Rshad Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Account", "major": "PR"}, "202201174": {"name": "Farah Amr Elsayed Abd Elsamiaa Milligi  Aly", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "PR", "major": "PR"}, "202200520": {"name": "Shahd Mohsen Mohamed Abdelgwad Hamoda", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Account", "major": "PR"}, "202201241": {"name": "Rawan Tarek Abd Elsatar Ali", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Strategy", "major": "PR"}, "202200420": {"name": "Menna Ayman Mohamed Ahmed Youssef", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "PR", "major": "PR"}, "202300120": {"name": "Sohaila Walid Samy Elsemary", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Account", "major": "PR"}, "202200548": {"name": "Joudy Omar Ali Elsayed Abdelmgeed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Strategy", "major": "PR"}, "202201282": {"name": "Sherry Wagdy Naguib Azmy", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "PR", "major": "PR"}, "202200870": {"name": "Rawan Mohamed Antar Eissa Hamam", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Account", "major": "PR"}, "202201677": {"name": "Yasmin Khaled Mohamed Mohamed Massoud", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Strategy", "major": "PR"}, "202200114": {"name": "Hanin Mohamed Waheed Mohamed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "PR", "major": "PR"}, "202100184": {"name": "Rowan Elsayed Ibrahim Elsayed Nassar", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Content", "major": "RTV"}, "202201291": {"name": "Basmla mohamed mohamed saleh", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Content", "major": "RTV"}, "202200071": {"name": "Heba Allah Bassam Ahmed Saif Mahmoud", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Content", "major": "RTV"}, "202201444": {"name": "Shahd Khaled Salah Ali Elsrogy", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Content", "major": "RTV"}, "202201560": {"name": "Nourhan Elaraby hamed  Elshafie", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Content", "major": "RTV"}, "202201989": {"name": "Valerian Hany Makram  Saleh", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Content", "major": "RTV"}, "202200169": {"name": "Omnia Osama Ibrahem Ibrahem Soudy", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Content", "major": "RTV"}, "202200291": {"name": "Sandy Philips Samir  Morcos", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 6", "role": "Content", "major": "RTV"}, "202200840": {"name": "Rewan Hussien Abdel Wadoud Abdelrazek", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Account", "major": "PR"}, "202201369": {"name": "Ali Mohamed Ali Awad AboHamda", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Account", "major": "PR"}, "202200849": {"name": "Judy Alaaeldin Mostafa  Mohammed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Strategy", "major": "PR"}, "202200409": {"name": "Malak Mohamed Ali Ahmed  Serri", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "PR", "major": "PR"}, "202200375": {"name": "Asmaa Mostafa Mohamed Koraiem", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Account", "major": "PR"}, "202201323": {"name": "Rouh Ayman Mohamed Abdelhamed Soliman", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Strategy", "major": "PR"}, "202200799": {"name": "Nourhan Nageh Gad Yassa Gad", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "PR", "major": "PR"}, "202200978": {"name": "Mariam Abdelmenem Abdelkader Zaki Elsayed  Khalifa", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Account", "major": "PR"}, "202201201": {"name": "Maia Ali Abd Ellatef Ali Mohamed Maklad", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Strategy", "major": "PR"}, "202200141": {"name": "Mariam Ahmed Abdelfatah Nasr Hassan", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "PR", "major": "PR"}, "202300547": {"name": "Abdelrahman Taher Salah Mohammed Abou Elezz", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Account", "major": "PR"}, "202200795": {"name": "Nancy Abdelwahed abdelaziz Abdelwahed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Content", "major": "RTV"}, "202101120": {"name": "Nariman Magdy Mohamed Shaaban Ahmed", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Content", "major": "RTV"}, "202100574": {"name": "Nataly Rafik Badie Rezk Tanious", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Content", "major": "RTV"}, "202201627": {"name": "Engy Gameel Ahmed Mohamed Hashem", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Content", "major": "RTV"}, "202201257": {"name": "Ganna Osama Ali Kamel", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Content", "major": "RTV"}, "202201457": {"name": "Habiba Alaa Eldin Abdelazeem Bayoumy", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Content", "major": "RTV"}, "202200010": {"name": "Nouran Mohamed Shrief  Ebrahim", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Content", "major": "RTV"}, "202200933": {"name": "Mariem Sameh Mohamed Hassan Hassan Samra", "workshop": "ML4 – AI & Data-Driven Media Lab", "room": "Room 3", "group": "Group 7", "role": "Content", "major": "RTV"}, "202200546": {"name": "Jasmin Ayman Sedky  Malk", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Account", "major": "PR"}, "202201245": {"name": "Abeer Sabry Abdulhamid Shehata", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Account", "major": "PR"}, "202201141": {"name": "Roaya Mohamed Ahmed Zaher Abdelsamea Elmaselhy", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Strategy", "major": "PR"}, "202201951": {"name": "Danah Sherif Abdelazeem Hassan Mostafa", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "PR", "major": "PR"}, "202200044": {"name": "Kholoud Diaa Eid Fahem", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Account", "major": "PR"}, "202200225": {"name": "Salma Ahmed Hassan Mahran", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Strategy", "major": "PR"}, "202201272": {"name": "Toka Ashraf Mohmmed Hassan Gazer", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Content", "major": "RTV"}, "202200729": {"name": "Ahmed ebrahim ebrahim mohamed soliman", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Content", "major": "RTV"}, "202200790": {"name": "Menna Mahmoud Mohamed Farouk  Elsayed", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Content", "major": "RTV"}, "202200756": {"name": "Mohamed Raafat Abdelal Galal", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Content", "major": "RTV"}, "202201121": {"name": "Mennatallah Aly Kasem Abdallah", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Content", "major": "RTV"}, "202200088": {"name": "Mennaallah Mohamed Hassan Abdelhmed El basos", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Content", "major": "RTV"}, "202201221": {"name": "Peter Safwat Aziz Shehata Boktor", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Content", "major": "RTV"}, "202200175": {"name": "Basmala hany taha abdelmged  elshabrawy", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 8", "role": "Content", "major": "RTV"}, "202200354": {"name": "Menna Alaa Mostafa Hammam Abdelaziz", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Account", "major": "PR"}, "202200313": {"name": "Sara Mohamed Hassan Elfiki", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Strategy", "major": "PR"}, "202201132": {"name": "Rahma Ahmed Mahmoud Mohamed Morsi Ismail", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "PR", "major": "PR"}, "202201906": {"name": "Serag Tarek Abbas Abdalaziz", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Account", "major": "PR"}, "202200633": {"name": "Myriam Osama Nessem Sadek", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Strategy", "major": "PR"}, "202201142": {"name": "Ahd Mostafa Hassan  Ahmed", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "PR", "major": "PR"}, "202400387": {"name": "Hana Ibrahim Hassan Mohamed Abdrabou", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Content", "major": "RTV"}, "202201945": {"name": "Rahma Hesham Mohamed Eid Mohamed", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Content", "major": "RTV"}, "202201119": {"name": "Yasmeen Sayed Khalil  Abbas", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Content", "major": "RTV"}, "202201655": {"name": "Logayn Wael Mohammed Elwan Mosalem", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Content", "major": "RTV"}, "202200674": {"name": "Malak Maged Ahmed Sayed Attallah", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Content", "major": "RTV"}, "202200683": {"name": "Mariez Mofeed Farag Youssef", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Content", "major": "RTV"}, "202201373": {"name": "Enjy Ahmed Mohamed Sayed Ahmed Ebaid", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Content", "major": "RTV"}, "202201924": {"name": "Mariam Hussein Hassan Mohamed Hamed", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 9", "role": "Content", "major": "RTV"}, "202200295": {"name": "Farida Abdelmaksoud Megahed Elsayed Mohamed Elnaquib", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Account", "major": "PR"}, "202200982": {"name": "Rokaya Said Gomaa  Gaber", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "PR", "major": "PR"}, "202200883": {"name": "Omnia Ahmed Mohamed Atef Abd Elmaksod Taha", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Account", "major": "PR"}, "202201902": {"name": "Malak Abdelfatah Mahmoud  Alqedra", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Strategy", "major": "PR"}, "202200670": {"name": "Engy Hesham Mohamed Hamed", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "PR", "major": "PR"}, "202200936": {"name": "Maryam Mohamed Mamoun Dawoud ELassy", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Account", "major": "PR"}, "202101131": {"name": "Adham Zaki Awad Zaki Awad", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Content", "major": "RTV"}, "202200651": {"name": "Sarah Alaa Elsayed Ali Abo Moustafa", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Content", "major": "RTV"}, "202201157": {"name": "Jana Ramadan Abdelnaby Soliman Ramdan", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Content", "major": "RTV"}, "202201171": {"name": "Shahd Mohamed Anis Mohamed", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Content", "major": "RTV"}, "202201521": {"name": "Yara Husam El Din Mokhtar Mousa", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Content", "major": "RTV"}, "202201203": {"name": "Shahd Mohamed Abdo Abd Elaal", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Content", "major": "RTV"}, "202200155": {"name": "Mariam Mahmoud Muhamed Mahmoud El farnsawy", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Content", "major": "RTV"}, "202200433": {"name": "Abdallah ahmed mohamed mahmoud ibrahim rayan", "workshop": "ML1 – From Campus to Industry", "room": "Room 6", "group": "Group 10", "role": "Content", "major": "RTV"}, "202200190": {"name": "Menna amir mohamed yehia mohamed aboelkher", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Account", "major": "PR"}, "202201374": {"name": "Girgis Samy Attallah Tamer Hamzawy", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Account", "major": "PR"}, "202200351": {"name": "Shahd Walid Gebril Radwan", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Strategy", "major": "PR"}, "202201103": {"name": "Kirolos Farah Asfour Wasif Maseha", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "PR", "major": "PR"}, "202201516": {"name": "Rahma Allah Emad Ibrahim Ibrahim Saad", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Account", "major": "PR"}, "202201625": {"name": "Nada Mahmoud Mohamed Ebrahim Ahmed", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202201298": {"name": "Abdelrahman Mohamed Abdelrahman Mohamed Suliman", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202200576": {"name": "Samaa Khairy Saeed Mohamed  Mohamed", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202201011": {"name": "Abdallah Mohammed Hussein Ahmed Hassan", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202201230": {"name": "Mennatallah Mohamed Ahmed Abd Almotelb", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202201264": {"name": "Youssef Ashraf Anwar Eskndar  Soliman", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202201799": {"name": "Jumana mohamed sameh hassan ismail", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202201743": {"name": "Ziad Mahmoud Ashour  Desouky", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202201037": {"name": "Febronia Samir Saad  Tanious", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 11", "role": "Content", "major": "RTV"}, "202201746": {"name": "Rodayna Kamel Badr Mahmoud  Badr", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Account", "major": "PR"}, "202200415": {"name": "Hana Khaled Tamim Mohamed Nageb", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Strategy", "major": "PR"}, "202201135": {"name": "Youssef Hisham Youssef El Sayed", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "PR", "major": "PR"}, "202201680": {"name": "Bassem omar farag elsaied  saied", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Account", "major": "PR"}, "202201316": {"name": "Malak Ahmed Fathy Abdelfatah", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Strategy", "major": "PR"}, "202201589": {"name": "Moustafa Amr Hamouda Abdo  Ali", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202200042": {"name": "Nouran Mohamed Rabie ElSayed Ahmed", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202201376": {"name": "Alaa Saber Mohamed Baioumy  Mousa", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202201647": {"name": "Ziad Mohamed Salah Mohamed Gobba", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202201120": {"name": "Mennatallah Mohamed Elsayed Abdelaziz Elsayed", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202200692": {"name": "Salma Ahmed Shafik Abdel Razik  Ahmed", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202201877": {"name": "Seif eldin Basher Abdelghany Ali Ashour", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202201229": {"name": "Mai Mohamed Ahmed Abd Almotelb", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202200928": {"name": "Yasmin Nabil Salem Ibrahim", "workshop": "ML1 – From Campus to Industry", "room": "Room 4", "group": "Group 12", "role": "Content", "major": "RTV"}, "202200787": {"name": "Rana Ayman saad Alsaead", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Account", "major": "PR"}, "202201524": {"name": "Basmala Mubarak Nour Ali", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "PR", "major": "PR"}, "202200909": {"name": "Habiba Sameh Mohamed Said  Mahrous", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Account", "major": "PR"}, "202200041": {"name": "Nancy Abd Elrheem Mohamed Abd Elrheem", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Strategy", "major": "PR"}, "202201345": {"name": "Mahmoud Refaat Mohamed Mohamed Elrefaay", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "PR", "major": "PR"}, "202201453": {"name": "Sara Gamal Mohamed  Ibrahim", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202201130": {"name": "Rana Rafik George Kamel Zamar", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202201421": {"name": "Rawan Kamel Mansour Kamel Mansour", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202201807": {"name": "Saad Magdy halem  Amen", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202200196": {"name": "Omar Mahmoud Ibrahim Abdo Farrag", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202200654": {"name": "Hana Ahmed Labib Alsaed", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202201340": {"name": "Sohila Ayman Aly sabry mohamed Elsherif", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202000886": {"name": "Mostafa Ehab Mahmoud Mohamed", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202200319": {"name": "Ahmed Mohamed ElSayed Mohamed Selim", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 13", "role": "Content", "major": "RTV"}, "202201200": {"name": "Maya Waleed Ahmed Mohamed Omar", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Account", "major": "PR"}, "202200662": {"name": "Malak Mohamed Mostafa Abu Elenin", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Account", "major": "PR"}, "202200373": {"name": "MennaAllah Ashraf Mohamed Zaki ElHawary", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Strategy", "major": "PR"}, "202201315": {"name": "Radwa Mohamed Mahmoud Ahmed Hussein", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "PR", "major": "PR"}, "202201359": {"name": "Reem Bishr Mohamed Bisher  Mohamed", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Account", "major": "PR"}, "202200130": {"name": "Aisha  Abdulmalik Nadila  Onan", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Content", "major": "RTV"}, "202200589": {"name": "judy mohamed hassan mostafa", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Content", "major": "RTV"}, "202201711": {"name": "Hannah Amr Abdelmoneim Badwy  Ahmed", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Content", "major": "RTV"}, "202200350": {"name": "Marina Medhat Noshey  Tomas", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Content", "major": "RTV"}, "202201397": {"name": "Nour Ahmed Fathy Mohamed Hassan", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Content", "major": "RTV"}, "202201601": {"name": "Habiba Waleed Abdelhafez Saad Abdelhafez", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Content", "major": "RTV"}, "202201021": {"name": "Hager sameh samy rashed gad", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Content", "major": "RTV"}, "202200517": {"name": "Mariam Atef Farid  Gerges", "workshop": "ML1 – From Campus to Industry", "room": "Room 5", "group": "Group 14", "role": "Content", "major": "RTV"}};
+
+const roleClass = {
+  'Account': 'role-account',
+  'Strategy': 'role-strategy',
+  'PR': 'role-pr',
+  'Content': 'role-content'
+};
+const roleEmoji = {
+  'Account': '💼',
+  'Strategy': '🎯',
+  'PR': '📢',
+  'Content': '✏️'
+};
+const roomEmoji = ['🚪','🏫','🏫','🏫','🏫','🏫','🏛️'];
+
+function lookup() {
+  const sid = document.getElementById('sid').value.trim();
+  const resultDiv = document.getElementById('result');
+
+  if (!sid) {
+    resultDiv.innerHTML = `
+      <div class="error-card">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">No ID entered</div>
+        <div class="error-msg">Please type your Student ID above.</div>
+      </div>`;
+    return;
+  }
+
+  const student = DATA[sid];
+
+  if (!student) {
+    resultDiv.innerHTML = `
+      <div class="error-card">
+        <div class="error-icon">🔎</div>
+        <div class="error-title">Student not found</div>
+        <div class="error-msg">No record for ID <strong>${sid}</strong>.<br>Check the number and try again.</div>
+      </div>`;
+    return;
+  }
+
+  const isML4 = student.workshop.includes('ML4');
+  const wsClass = isML4 ? 'ml4' : 'ml1';
+  const wsShort = isML4 ? 'ML4' : 'ML1';
+  const wsLabel = isML4 ? 'AI & Data-Driven Media Lab' : 'From Campus to Industry';
+  const roomNum = parseInt(student.room.replace('Room ', ''));
+  const rEmoji = roomEmoji[roomNum] || '🚪';
+  const rClass = roleClass[student.role] || '';
+  const rEmoji2 = roleEmoji[student.role] || '👤';
+
+  resultDiv.innerHTML = `
+    <div class="result-card">
+      <div class="card-header">
+        <div class="student-id">ID · ${sid}</div>
+        <div class="student-name">${student.name}</div>
+      </div>
+      <div class="workshop-badge ${wsClass}">
+        <span class="ws-dot"></span>
+        ${wsShort} — ${wsLabel}
+      </div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-emoji">👥</div>
+          <div class="info-label">Group</div>
+          <div class="info-value">${student.group}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-emoji">${rEmoji}</div>
+          <div class="info-label">Room</div>
+          <div class="info-value">${student.room}</div>
+        </div>
+        <div class="info-item full">
+          <div class="info-emoji">${rEmoji2}</div>
+          <div class="info-label">Your Role</div>
+          <div class="info-value ${rClass}">${student.role}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Allow Enter key
+document.getElementById('sid').addEventListener('keydown', e => {
+  if (e.key === 'Enter') lookup();
+});
+
+// Auto-search when 9 digits entered
+document.getElementById('sid').addEventListener('input', e => {
+  if (e.target.value.length === 9) lookup();
+});
+</script>
+</body>
+</html>
